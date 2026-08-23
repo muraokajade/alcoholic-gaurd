@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,16 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { AlcoholGuardRecord } from '../src/models/types';
-import { saveGuardRecord } from '../src/storage';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { ACTION_PRESETS, AFTER_DRINK_ACTION_IDS, RECOMMENDED_ACTION_IDS } from '../src/constants/alternativeActions';
+import { AlcoholGuardRecord, DailyStatus } from '../src/models/types';
+import { getDailyStatus, logAction, recordDrank, saveGuardRecord, todayKey } from '../src/storage';
 
 const STATE_OPTIONS = ['つらい', '不安', 'イライラ', '暇', '疲労', '空腹', 'その他'];
 const ACTION_OPTIONS = ['水を飲む', '食事をする', '散歩する', '横になる', '誰かに連絡する', 'シャワーを浴びる', '音楽を聴く'];
+
+const RECOMMENDED_ACTIONS = ACTION_PRESETS.filter((a) => RECOMMENDED_ACTION_IDS.includes(a.id));
+const AFTER_DRINK_ACTIONS = ACTION_PRESETS.filter((a) => AFTER_DRINK_ACTION_IDS.includes(a.id));
 
 export default function GuardScreen() {
   const router = useRouter();
@@ -25,11 +29,33 @@ export default function GuardScreen() {
   const [memo, setMemo] = useState('');
   const [saved, setSaved] = useState(false);
   const [savedRecord, setSavedRecord] = useState<AlcoholGuardRecord | null>(null);
+  const [todayStatus, setTodayStatus] = useState<DailyStatus | null>(null);
+  const [afterDrink, setAfterDrink] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      getDailyStatus(todayKey()).then(setTodayStatus);
+    }, [])
+  );
 
   const toggleState = (state: string) => {
     setSelectedStates((prev) =>
       prev.includes(state) ? prev.filter((s) => s !== state) : [...prev, state]
     );
+  };
+
+  const handleQuickAction = async (actionId: string, actionLabel: string) => {
+    await logAction(actionId, actionLabel);
+    const next = await getDailyStatus(todayKey());
+    setTodayStatus(next);
+    Alert.alert('記録しました', actionLabel);
+  };
+
+  const handleDrank = async () => {
+    await recordDrank(todayKey());
+    const next = await getDailyStatus(todayKey());
+    setTodayStatus(next);
+    setAfterDrink(true);
   };
 
   const selectAction = (action: string) => {
@@ -61,6 +87,34 @@ export default function GuardScreen() {
       Alert.alert('保存エラー', '記録の保存に失敗しました');
     }
   };
+
+  // === 飲酒後：責めずに次の行動へ ===
+  if (afterDrink) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.resultContent}>
+          <Text style={styles.resultTitle}>今日は飲んだ。</Text>
+          <Text style={styles.afterDrinkMessage}>
+            でも次まで続けないために、{'\n'}今できることを1つ決めよう。
+          </Text>
+          <View style={styles.afterDrinkActions}>
+            {AFTER_DRINK_ACTIONS.map((action) => (
+              <TouchableOpacity
+                key={action.id}
+                style={styles.afterDrinkChip}
+                onPress={() => handleQuickAction(action.id, action.label)}
+              >
+                <Text style={styles.afterDrinkChipText}>{action.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity style={styles.homeButton} onPress={() => router.replace('/')}>
+            <Text style={styles.homeButtonText}>ホームに戻る</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // === 保存後の結果表示 ===
   if (saved && savedRecord) {
@@ -98,6 +152,38 @@ export default function GuardScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Alcohol Guard</Text>
+
+        {/* 今日のゴール・行動実績 */}
+        <View style={styles.goalBox}>
+          <Text style={styles.goalText}>
+            今日のゴール：{todayStatus?.checkin?.goalTime ?? '未設定'}
+          </Text>
+          <Text style={styles.actionCountText}>
+            今日のガード行動：{todayStatus?.guardActionCount ?? 0}回
+          </Text>
+        </View>
+
+        {/* おすすめの行動 */}
+        <Text style={styles.sectionLabel}>おすすめの行動</Text>
+        <View style={styles.recommendedRow}>
+          {RECOMMENDED_ACTIONS.map((action) => (
+            <TouchableOpacity
+              key={action.id}
+              style={styles.recommendedCard}
+              onPress={() => handleQuickAction(action.id, action.label)}
+            >
+              <Text style={styles.recommendedText}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity style={styles.linkButton} onPress={() => router.push('/actions')}>
+          <Text style={styles.linkButtonText}>他の行動を見る</Text>
+        </TouchableOpacity>
+
+        {/* 20 TAP GUARD */}
+        <TouchableOpacity style={styles.tapGuardButton} onPress={() => router.push('/tapguard')}>
+          <Text style={styles.tapGuardButtonText}>20 TAP GUARDを使う</Text>
+        </TouchableOpacity>
 
         {/* 飲酒欲求 */}
         <Text style={styles.sectionLabel}>飲酒欲求</Text>
@@ -190,6 +276,11 @@ export default function GuardScreen() {
         {/* 保存ボタン */}
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>記録する</Text>
+        </TouchableOpacity>
+
+        {/* 飲んでしまった場合 */}
+        <TouchableOpacity style={styles.drankButton} onPress={handleDrank}>
+          <Text style={styles.drankButtonText}>飲んでしまった</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -295,6 +386,94 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  drankButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
+    backgroundColor: '#2a2a4a',
+  },
+  drankButtonText: {
+    color: '#aaaacc',
+    fontSize: 14,
+  },
+  goalBox: {
+    backgroundColor: '#2a2a4a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  goalText: {
+    color: '#fbbf24',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  actionCountText: {
+    color: '#8888aa',
+    fontSize: 13,
+  },
+  recommendedRow: {
+    gap: 10,
+    marginBottom: 12,
+  },
+  recommendedCard: {
+    backgroundColor: '#e94560',
+    borderRadius: 12,
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  recommendedText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  linkButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  linkButtonText: {
+    color: '#8888aa',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  tapGuardButton: {
+    borderWidth: 2,
+    borderColor: '#fbbf24',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  tapGuardButtonText: {
+    color: '#fbbf24',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  afterDrinkMessage: {
+    fontSize: 16,
+    color: '#ccccdd',
+    textAlign: 'center',
+    lineHeight: 26,
+    marginBottom: 32,
+  },
+  afterDrinkActions: {
+    gap: 10,
+    width: '100%',
+    marginBottom: 32,
+  },
+  afterDrinkChip: {
+    backgroundColor: '#2a2a4a',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  afterDrinkChipText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '500',
   },
   // Result screen styles
   resultContent: {
