@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ACTION_PRESETS, AFTER_DRINK_ACTION_IDS, RECOMMENDED_ACTION_IDS } from '../src/constants/alternativeActions';
+import { FeedbackToast } from '../src/components/FeedbackToast';
 import { AlcoholGuardRecord, DailyStatus } from '../src/models/types';
 import { getDailyStatus, logAction, recordDrank, saveGuardRecord, todayKey } from '../src/storage';
 
@@ -31,6 +32,8 @@ export default function GuardScreen() {
   const [savedRecord, setSavedRecord] = useState<AlcoholGuardRecord | null>(null);
   const [todayStatus, setTodayStatus] = useState<DailyStatus | null>(null);
   const [afterDrink, setAfterDrink] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastKey, setToastKey] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,7 +51,8 @@ export default function GuardScreen() {
     await logAction(actionId, actionLabel);
     const next = await getDailyStatus(todayKey());
     setTodayStatus(next);
-    Alert.alert('記録しました', actionLabel);
+    setToastMessage(`記録しました：${actionLabel}`);
+    setToastKey((k) => k + 1);
   };
 
   const handleDrank = async () => {
@@ -92,6 +96,7 @@ export default function GuardScreen() {
   if (afterDrink) {
     return (
       <SafeAreaView style={styles.container}>
+        <FeedbackToast message={toastMessage} toastKey={toastKey} />
         <View style={styles.resultContent}>
           <Text style={styles.resultTitle}>今日は飲んだ。</Text>
           <Text style={styles.afterDrinkMessage}>
@@ -150,6 +155,7 @@ export default function GuardScreen() {
   // === 入力フォーム ===
   return (
     <SafeAreaView style={styles.container}>
+      <FeedbackToast message={toastMessage} toastKey={toastKey} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Alcohol Guard</Text>
 
