@@ -34,6 +34,7 @@ export default function GuardScreen() {
   const [afterDrink, setAfterDrink] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastKey, setToastKey] = useState(0);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -192,103 +193,117 @@ export default function GuardScreen() {
           <Text style={styles.tapGuardButtonText}>20 TAP GUARDを使う</Text>
         </TouchableOpacity>
 
-        {/* 飲酒欲求 */}
-        <Text style={styles.sectionLabel}>飲酒欲求</Text>
-        <View style={styles.urgeRow}>
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <TouchableOpacity
-              key={n}
-              style={[styles.urgeButton, urgeLevel === n && styles.urgeButtonActive]}
-              onPress={() => setUrgeLevel(n)}
-            >
-              <Text
-                style={[styles.urgeText, urgeLevel === n && styles.urgeTextActive]}
-              >
-                {n}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <Text style={styles.urgeDisplay}>{urgeLevel} / 10</Text>
-
-        {/* 現在の状態 */}
-        <Text style={styles.sectionLabel}>現在の状態（複数選択可）</Text>
-        <View style={styles.chipRow}>
-          {STATE_OPTIONS.map((state) => (
-            <TouchableOpacity
-              key={state}
-              style={[
-                styles.chip,
-                selectedStates.includes(state) && styles.chipActive,
-              ]}
-              onPress={() => toggleState(state)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  selectedStates.includes(state) && styles.chipTextActive,
-                ]}
-              >
-                {state}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* 今からやること */}
-        <Text style={styles.sectionLabel}>今からやること</Text>
-        <View style={styles.chipRow}>
-          {ACTION_OPTIONS.map((action) => (
-            <TouchableOpacity
-              key={action}
-              style={[
-                styles.chip,
-                nextAction === action && styles.chipActive,
-              ]}
-              onPress={() => selectAction(action)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  nextAction === action && styles.chipTextActive,
-                ]}
-              >
-                {action}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TextInput
-          style={styles.textInput}
-          placeholder="その他（自由入力）"
-          placeholderTextColor="#666"
-          value={customAction}
-          onChangeText={(text) => {
-            setCustomAction(text);
-            setNextAction('');
-          }}
-        />
-
-        {/* メモ */}
-        <Text style={styles.sectionLabel}>メモ（任意）</Text>
-        <TextInput
-          style={[styles.textInput, styles.memoInput]}
-          placeholder="今の気持ちなど"
-          placeholderTextColor="#666"
-          value={memo}
-          onChangeText={setMemo}
-          multiline
-        />
-
-        {/* 保存ボタン */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>記録する</Text>
-        </TouchableOpacity>
-
-        {/* 飲んでしまった場合 */}
+        {/* 飲んでしまった場合（緊急導線のため折りたたみの外に維持） */}
         <TouchableOpacity style={styles.drankButton} onPress={handleDrank}>
           <Text style={styles.drankButtonText}>飲んでしまった</Text>
         </TouchableOpacity>
+
+        {/* くわしく記録する（任意） */}
+        <TouchableOpacity
+          style={styles.detailsToggle}
+          onPress={() => setDetailsExpanded((v) => !v)}
+        >
+          <Text style={styles.detailsToggleText}>
+            くわしく記録する（任意） {detailsExpanded ? '▲' : '▼'}
+          </Text>
+        </TouchableOpacity>
+
+        {detailsExpanded && (
+          <>
+            {/* 飲酒欲求 */}
+            <Text style={styles.sectionLabel}>飲酒欲求</Text>
+            <View style={styles.urgeRow}>
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                <TouchableOpacity
+                  key={n}
+                  style={[styles.urgeButton, urgeLevel === n && styles.urgeButtonActive]}
+                  onPress={() => setUrgeLevel(n)}
+                >
+                  <Text
+                    style={[styles.urgeText, urgeLevel === n && styles.urgeTextActive]}
+                  >
+                    {n}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.urgeDisplay}>{urgeLevel} / 10</Text>
+
+            {/* 現在の状態 */}
+            <Text style={styles.sectionLabel}>現在の状態（複数選択可）</Text>
+            <View style={styles.chipRow}>
+              {STATE_OPTIONS.map((state) => (
+                <TouchableOpacity
+                  key={state}
+                  style={[
+                    styles.chip,
+                    selectedStates.includes(state) && styles.chipActive,
+                  ]}
+                  onPress={() => toggleState(state)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selectedStates.includes(state) && styles.chipTextActive,
+                    ]}
+                  >
+                    {state}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* 今からやること */}
+            <Text style={styles.sectionLabel}>今からやること</Text>
+            <View style={styles.chipRow}>
+              {ACTION_OPTIONS.map((action) => (
+                <TouchableOpacity
+                  key={action}
+                  style={[
+                    styles.chip,
+                    nextAction === action && styles.chipActive,
+                  ]}
+                  onPress={() => selectAction(action)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      nextAction === action && styles.chipTextActive,
+                    ]}
+                  >
+                    {action}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={styles.textInput}
+              placeholder="その他（自由入力）"
+              placeholderTextColor="#666"
+              value={customAction}
+              onChangeText={(text) => {
+                setCustomAction(text);
+                setNextAction('');
+              }}
+            />
+
+            {/* メモ */}
+            <Text style={styles.sectionLabel}>メモ（任意）</Text>
+            <TextInput
+              style={[styles.textInput, styles.memoInput]}
+              placeholder="今の気持ちなど"
+              placeholderTextColor="#666"
+              value={memo}
+              onChangeText={setMemo}
+              multiline
+            />
+
+            {/* 保存ボタン */}
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <Text style={styles.saveButtonText}>記録する</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -404,6 +419,17 @@ const styles = StyleSheet.create({
   drankButtonText: {
     color: '#aaaacc',
     fontSize: 14,
+  },
+  detailsToggle: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  detailsToggleText: {
+    color: '#8888aa',
+    fontSize: 14,
+    fontWeight: '600',
   },
   goalBox: {
     backgroundColor: '#2a2a4a',
