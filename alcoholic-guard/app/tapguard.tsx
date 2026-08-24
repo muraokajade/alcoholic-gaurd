@@ -52,7 +52,9 @@ export default function TapGuardScreen() {
         <Text style={styles.counter}>
           {count} / {TAP_TARGET}
         </Text>
-        <Text style={styles.message}>{cleared ? 'GUARD CLEAR' : getMessage(count || 1)}</Text>
+        <Text style={styles.message}>
+          {cleared ? 'GUARD CLEAR' : count === 0 ? '20回タップして流れを切り替える' : getMessage(count)}
+        </Text>
 
         {!cleared ? (
           <Animated.View style={{ transform: [{ scale }] }}>

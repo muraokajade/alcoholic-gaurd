@@ -170,7 +170,7 @@ export default function GuardScreen() {
         </View>
 
         {/* おすすめの行動 */}
-        <Text style={styles.sectionLabel}>おすすめの行動</Text>
+        <Text style={styles.sectionLabel}>まず、今できることを1つ</Text>
         <View style={styles.recommendedRow}>
           {RECOMMENDED_ACTIONS.map((action) => (
             <TouchableOpacity
@@ -187,6 +187,7 @@ export default function GuardScreen() {
         </TouchableOpacity>
 
         {/* 20 TAP GUARD */}
+        <Text style={styles.escalationLabel}>それでも飲みたい気持ちが強いなら</Text>
         <TouchableOpacity style={styles.tapGuardButton} onPress={() => router.push('/tapguard')}>
           <Text style={styles.tapGuardButtonText}>20 TAP GUARDを使う</Text>
         </TouchableOpacity>
@@ -444,6 +445,12 @@ const styles = StyleSheet.create({
     color: '#8888aa',
     fontSize: 14,
     textDecorationLine: 'underline',
+  },
+  escalationLabel: {
+    fontSize: 13,
+    color: '#8888aa',
+    textAlign: 'center',
+    marginBottom: 10,
   },
   tapGuardButton: {
     borderWidth: 2,

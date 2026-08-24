@@ -154,6 +154,14 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {today.drank && (
+          <View style={styles.drankCard}>
+            <Text style={styles.drankCardText}>
+              今日は飲んだ記録があります。次まで続けないことを大事にしましょう。
+            </Text>
+          </View>
+        )}
+
         {checkin && (
           <>
             <View style={styles.meterCard}>
@@ -173,14 +181,6 @@ export default function HomeScreen() {
                 </Text>
                 <Text style={styles.achievementNote}>
                   体の軽さ・爽快感は明日の朝に記録します
-                </Text>
-              </View>
-            )}
-
-            {today.drank && (
-              <View style={styles.drankCard}>
-                <Text style={styles.drankCardText}>
-                  今日は飲んだ記録があります。次まで続けないことを大事にしましょう。
                 </Text>
               </View>
             )}
